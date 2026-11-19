@@ -59,4 +59,6 @@ def test_parse_file_and_save_csv(tmp_path: Path):
     assert saved_path.exists()
     loaded = pd.read_csv(saved_path)
     assert loaded.loc[0, "block_id"] == "blk_123"
-    assert loaded.loc[0, "event_id"] == records.loc[0, "event_id"]
+    # CSV readers may infer the numeric-looking Drain cluster ID as an int.
+    # Compare normalized strings because EventId is an identifier, not a measure.
+    assert str(loaded.loc[0, "event_id"]) == str(records.loc[0, "event_id"])
