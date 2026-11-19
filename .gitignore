@@ -8,32 +8,30 @@ __pycache__/
 venv/
 env/
 
-# Secrets and local configuration
+# Secrets
 .env
 .env.*
 !.env.example
 
-# Test, coverage, and type-check caches
+# Testing and caches
 .pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
 .ruff_cache/
-
-# Jupyter
 .ipynb_checkpoints/
 
-# IDE and editor
+# IDE
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
 
-# Logs and temporary files
+# Logs
 *.log
 *.tmp
 
-# Generated datasets: keep placeholders, never commit raw/processed data
+# Generated data (keep placeholders only)
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
