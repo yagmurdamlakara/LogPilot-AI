@@ -56,3 +56,40 @@ pytest
 - Report precision, recall, and F1 for the anomalous class; do not rely on accuracy alone.
 - Send only selected anomalous block evidence to the LLM, never the entire log file.
 - Do not commit raw datasets, generated datasets, credentials, or virtual environments.
+
+## Full HDFS_v1 preprocessing (memory-bounded)
+
+Keep the raw HDFS_v1 files under `data/raw/HDFS/`. Do not commit the downloaded
+dataset. The full-log pipeline keeps one Drain3 miner alive for the complete
+file and stores block/event counts in a temporary SQLite database instead of
+holding all parsed log lines in RAM.
+
+Run from the repository root in the activated virtual environment:
+
+```powershell
+python -m src.preprocessing.full_dataset data/raw/HDFS/HDFS.log
+```
+
+Default outputs:
+
+- `data/processed/hdfs_full_block_features.csv`: one row per block and one
+  count column per Drain3 event cluster.
+- `data/processed/hdfs_full_event_templates.csv`: event IDs and their latest
+  mined templates.
+- `data/processed/.hdfs_feature_work.sqlite3`: temporary work database,
+  removed after successful export.
+
+Then merge the official block-level ground-truth labels:
+
+```powershell
+python -m src.preprocessing.label_merger data/processed/hdfs_full_block_features.csv data/raw/HDFS/preprocessed/anomaly_label.csv --output data/processed/hdfs_full_labeled.csv
+```
+
+The parser reports processed lines, lines containing block IDs, unique blocks,
+unique event clusters, and the total feature count. It prints progress every
+500,000 non-empty lines by default. Adjust `--batch-size` or
+`--progress-every` if needed.
+
+The Loghub-provided `Event_occurrence_matrix.csv` is a reference artifact,
+not the output of our Drain3 parser. Its E1-E29 identifiers must not be assumed
+to match Drain3 cluster IDs. Use it for a separate reference comparison.
