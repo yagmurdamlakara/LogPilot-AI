@@ -1,0 +1,21 @@
+# LogPilot AI - initial development dependencies
+# Python 3.13 environment
+
+# Data processing
+numpy>=2.1
+pandas>=2.2
+
+# HDFS log parsing
+drain3>=0.9
+
+# Machine learning
+scikit-learn>=1.6
+joblib>=1.4
+
+# Visualization and web application
+matplotlib>=3.9
+seaborn>=0.13
+streamlit>=1.40
+
+# Testing
+pytest>=8.0
