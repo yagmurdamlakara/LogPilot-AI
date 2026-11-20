@@ -2,8 +2,8 @@ model,metric,mean,std_sample,unit,seed_count
 isolation_forest,precision,0.8140060552404401,0.01711382304163401,score,5
 isolation_forest,recall,0.5920427553444180,0.01212441626430845,score,5
 isolation_forest,f1,0.6852898756733297,0.003928009631087898,score,5
-isolation_forest,inference_ms_per_block,0.007694969090536645,0.004019128476103240,ms/block,5
+isolation_forest,test_inference_ms_per_block,0.007694969090536645,0.004019128476103240,ms/block,5
 logistic_regression,precision,0.9796033366639770,0.01373458974110225,score,5
 logistic_regression,recall,0.9989311163895488,0.0007742520671262058,score,5
 logistic_regression,f1,0.9891327435658818,0.006930009811927314,score,5
-logistic_regression,inference_ms_per_block,0.0003351716760626264,0.0001955805939024319,ms/block,5
+logistic_regression,test_inference_ms_per_block,0.0003351716760626264,0.0001955805939024319,ms/block,5
