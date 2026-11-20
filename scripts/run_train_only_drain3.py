@@ -53,10 +53,12 @@ def split_block_ids(
 
 
 def train_parser_on_training_blocks(
-    raw_log: Path, train_ids: set[str], miner: TemplateMiner
+    raw_log: Path, train_ids: set[str], miner: TemplateMiner,
+    progress_every: int = 500_000,
 ) -> dict[str, int]:
     lines_seen = 0
     train_block_lines = 0
+    print("Parser fit started: training-block log lines only.", flush=True)
     with raw_log.open("r", encoding="utf-8", errors="replace") as source:
         for raw_line in source:
             message = raw_line.strip()
@@ -67,6 +69,19 @@ def train_parser_on_training_blocks(
             if block_id in train_ids:
                 miner.add_log_message(message)
                 train_block_lines += 1
+            if lines_seen % progress_every == 0:
+                print(
+                    f"Parser fit scanned {lines_seen:,} log lines; "
+                    f"used {train_block_lines:,} training-block lines; "
+                    f"clusters={len(miner.drain.clusters):,}",
+                    flush=True,
+                )
+    print(
+        f"Parser fit finished: scanned {lines_seen:,} lines; "
+        f"used {train_block_lines:,} training-block lines; "
+        f"clusters={len(miner.drain.clusters):,}",
+        flush=True,
+    )
     return {
         "raw_lines_scanned_for_parser_fit": lines_seen,
         "training_block_log_lines": train_block_lines,
@@ -75,7 +90,8 @@ def train_parser_on_training_blocks(
 
 
 def build_frozen_features(
-    raw_log: Path, known_ids: set[str], miner: TemplateMiner, database: Path
+    raw_log: Path, known_ids: set[str], miner: TemplateMiner, database: Path,
+    progress_every: int = 500_000,
 ) -> dict[str, int]:
     database.parent.mkdir(parents=True, exist_ok=True)
     database.unlink(missing_ok=True)
@@ -132,7 +148,20 @@ def build_frozen_features(
                 batch[(block_id, event_id)] += 1
                 if len(batch) >= 100_000:
                     flush()
+                if scanned % progress_every == 0:
+                    print(
+                        f"Frozen feature pass scanned {scanned:,} log lines; "
+                        f"labelled block lines={block_lines:,}; "
+                        f"matched={matched:,}; unmatched={unmatched:,}",
+                        flush=True,
+                    )
         flush()
+        print(
+            f"Frozen feature pass finished: scanned {scanned:,} lines; "
+            f"labelled block lines={block_lines:,}; matched={matched:,}; "
+            f"unmatched={unmatched:,}",
+            flush=True,
+        )
         distinct_blocks = connection.execute(
             "SELECT COUNT(DISTINCT block_id) FROM counts"
         ).fetchone()[0]
