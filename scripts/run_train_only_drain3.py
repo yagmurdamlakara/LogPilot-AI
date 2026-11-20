@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+from contextlib import closing
 from collections import Counter
 from pathlib import Path
 
@@ -181,7 +182,7 @@ def build_frozen_features(
 
 
 def load_feature_frame(database: Path, labels: pd.DataFrame) -> pd.DataFrame:
-    with sqlite3.connect(database) as connection:
+    with closing(sqlite3.connect(database)) as connection:
         long_features = pd.read_sql_query(
             "SELECT block_id, event_id, event_count FROM counts", connection
         )
