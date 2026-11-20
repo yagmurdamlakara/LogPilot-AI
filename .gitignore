@@ -31,6 +31,9 @@ htmlcov/
 *.log
 *.tmp
 
+# Generated experiment outputs (keep code and compact summaries tracked)
+experiments/train_only_drain3/
+
 # Generated data (keep placeholders only)
 data/raw/*
 !data/raw/.gitkeep
