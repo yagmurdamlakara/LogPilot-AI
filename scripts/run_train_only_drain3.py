@@ -305,10 +305,29 @@ def main() -> int:
     all_results = []
     for seed in args.seeds:
         print(f"\n=== Train-only Drain3 experiment: seed {seed} ===", flush=True)
-        result = run_seed(
-            frame, args.raw_log, args.output_dir, seed,
-            args.test_size, args.validation_size,
-        )
+        seed_dir = args.output_dir / f"seed_{seed}"
+        report_path = seed_dir / "experiment_report.json"
+        required_artifacts = [
+            seed_dir / "baseline_models.joblib",
+            seed_dir / "test_predictions.csv",
+            seed_dir / "metrics.json",
+            seed_dir / "drain3_templates.json",
+            report_path,
+        ]
+        if all(path.is_file() for path in required_artifacts):
+            result = json.loads(report_path.read_text(encoding="utf-8"))
+            stale_db = seed_dir / "frozen_features.sqlite3"
+            stale_db.unlink(missing_ok=True)
+            print(
+                f"Seed {seed} already has complete artifacts; resuming "
+                "without repeating the two raw-log passes.",
+                flush=True,
+            )
+        else:
+            result = run_seed(
+                frame, args.raw_log, args.output_dir, seed,
+                args.test_size, args.validation_size,
+            )
         all_results.append(result)
         print(
             f"Seed {seed} complete | unmatched log fraction="
