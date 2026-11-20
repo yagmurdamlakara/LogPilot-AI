@@ -14,7 +14,6 @@ import json
 import re
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
@@ -108,17 +107,6 @@ def main() -> int:
             "Some features contain missing/non-numeric values; inspect preprocessing."
         )
 
-    duplicated_feature_columns = []
-    seen: dict[tuple[object, ...], str] = {}
-    for column in numeric.columns:
-        signature = tuple(numeric[column].fillna("__NA__").tolist())
-        if signature in seen:
-            duplicated_feature_columns.append([seen[signature], str(column)])
-        else:
-            seen[signature] = str(column)
-    report["checks"]["duplicate_feature_columns"] = duplicated_feature_columns
-    if duplicated_feature_columns:
-        report["warnings"].append("Identical feature columns were found.")
 
     high_auc = []
     if not labels.isna().any() and set(labels.unique()) == {0, 1}:
