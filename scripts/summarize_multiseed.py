@@ -54,10 +54,7 @@ def main() -> None:
                 raise KeyError(f"{metrics_path}: missing model {model!r}")
 
             for metric in METRICS:
-                if metric == "test_inference_ms_per_block":
-                    value = model_payload.get(metric)
-                else:
-                    value = model_payload.get(metric)
+                value = model_payload.get(metric)
                 if not isinstance(value, (int, float)) or not math.isfinite(value):
                     raise ValueError(
                         f"{metrics_path}: invalid {model}.{metric}: {value!r}"
