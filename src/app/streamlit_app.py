@@ -151,14 +151,22 @@ def main() -> None:
         )
         if st.button("Seçili bloğun log kanıtını göster"):
             uploaded_file.seek(0)
-            with tempfile.NamedTemporaryFile(
-                suffix=".log", delete=True
-            ) as temporary_log:
-                temporary_log.write(uploaded_file.getbuffer())
-                temporary_log.flush()
+            temporary_path = None
+            try:
+                # On Windows, a still-open NamedTemporaryFile cannot reliably be
+                # reopened by Path.open(). Close it before evidence extraction.
+                with tempfile.NamedTemporaryFile(
+                    suffix=".log", delete=False
+                ) as temporary_log:
+                    temporary_log.write(uploaded_file.getbuffer())
+                    temporary_path = Path(temporary_log.name)
+
                 evidence = predictor.extract_block_evidence(
-                    temporary_log.name, {selected_block}, max_lines_per_block=100
+                    temporary_path, {selected_block}, max_lines_per_block=100
                 )
+            finally:
+                if temporary_path is not None:
+                    temporary_path.unlink(missing_ok=True)
             st.session_state["logpilot_evidence"] = {
                 "block_id": selected_block,
                 "lines": evidence.get(selected_block, []),
