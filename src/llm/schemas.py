@@ -23,6 +23,22 @@ class ExplanationValidationError(ValueError):
     """Raised when the local LLM returns an invalid explanation."""
 
 
+def calibrate_confidence(model_confidence: str, evidence_count: int) -> str:
+    """Apply a conservative evidence-volume ceiling to model confidence.
+
+    One or two selected records cannot support more than low confidence.
+    Three records can support at most medium confidence. High confidence is
+    left possible only when at least four distinct source records were selected.
+    This is a conservative guardrail, not a semantic proof of root cause.
+    """
+    confidence = model_confidence.strip().lower()
+    if evidence_count <= 2:
+        return "düşük"
+    if evidence_count == 3 and confidence == "yüksek":
+        return "orta"
+    return confidence
+
+
 def parse_explanation(raw: str, supplied_log_lines: list[str]) -> dict[str, Any]:
     """Parse output and resolve selected 1-based evidence indexes to source lines."""
     try:
@@ -76,14 +92,22 @@ def parse_explanation(raw: str, supplied_log_lines: list[str]) -> dict[str, Any]
             )
 
     allowed_confidence = {"düşük", "orta", "yüksek"}
-    if payload["confidence"].strip().lower() not in allowed_confidence:
+    model_confidence = payload["confidence"].strip().lower()
+    if model_confidence not in allowed_confidence:
         raise ExplanationValidationError(
             "'confidence' alanı düşük, orta veya yüksek olmalıdır."
         )
 
-    # Resolve indexes locally: returned evidence is always the exact original line.
     normalized = dict(payload)
     normalized["evidence"] = [
         supplied_log_lines[index - 1] for index in evidence_indexes
     ]
-    return {field: normalized[field] for field in REQUIRED_FIELDS}
+    normalized["model_confidence"] = model_confidence
+    normalized["confidence"] = calibrate_confidence(
+        model_confidence,
+        len(evidence_indexes),
+    )
+    return {
+        **{field: normalized[field] for field in REQUIRED_FIELDS},
+        "model_confidence": normalized["model_confidence"],
+    }
