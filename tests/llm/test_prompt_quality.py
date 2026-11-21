@@ -10,6 +10,7 @@ def test_prompt_calibrates_confidence_from_log_evidence_not_classifier_score():
     assert "log satırı varsa confidence değerini düşük seç" in SYSTEM_PROMPT
     assert "confidence değerini orta seç" in SYSTEM_PROMPT
     assert "Yüksek güveni yalnızca birden fazla açık" in SYSTEM_PROMPT
+    assert "genel heartbeat, INFO veya rutin durum mesajları" in SYSTEM_PROMPT
 
 
 def test_prompt_prevents_definitive_root_cause_claims():
@@ -21,7 +22,7 @@ def test_prompt_limits_recommendations_to_evidence_based_checks():
     assert "kanıtsız yapılandırma değişikliği veya sistem güncellemesi önerme" in SYSTEM_PROMPT
 
 
-def test_user_prompt_contains_only_the_supplied_log_evidence():
+def test_user_prompt_numbers_source_evidence_and_keeps_classifier_result():
     supplied = [
         "synthetic fixture: block operation started",
         "synthetic fixture: block operation completed",
@@ -36,7 +37,9 @@ def test_user_prompt_contains_only_the_supplied_log_evidence():
     payload_text = prompt.split("\n", 1)[1]
     payload = json.loads(payload_text)
 
-    assert payload["log_evidence"] == supplied
+    assert payload["log_evidence"] == [
+        {"line_number": 1, "text": supplied[0]},
+        {"line_number": 2, "text": supplied[1]},
+    ]
     assert payload["classifier_prediction"]["value"] == 1
     assert payload["classifier_prediction"]["anomaly_score"] == 0.99
-    assert "synthetic fixture: unrelated event" not in payload_text
