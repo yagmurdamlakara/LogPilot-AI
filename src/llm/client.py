@@ -14,7 +14,10 @@ EXPLANATION_JSON_SCHEMA = {
     "type": "object",
     "properties": {
         "summary": {"type": "string"},
-        "evidence": {"type": "array", "items": {"type": "string"}},
+        "evidence": {
+            "type": "array",
+            "items": {"type": "integer", "minimum": 1},
+        },
         "possible_causes": {"type": "array", "items": {"type": "string"}},
         "recommendations": {"type": "array", "items": {"type": "string"}},
         "limitations": {"type": "array", "items": {"type": "string"}},
