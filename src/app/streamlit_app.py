@@ -1,4 +1,4 @@
-"""Streamlit interface for HDFS block-level anomaly detection."""
+"""Streamlit dashboard for HDFS block-level anomaly detection."""
 from __future__ import annotations
 
 import sys
@@ -6,8 +6,6 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-# Streamlit may put src/app, rather than the repository root, on sys.path.
-# Add the repository root so imports such as src.inference resolve reliably.
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -30,6 +28,32 @@ def decoded_lines(uploaded_file):
         yield raw_line.decode("utf-8", errors="replace")
 
 
+def inject_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        .block-container {padding-top:2.1rem;padding-bottom:3rem;max-width:1440px;}
+        .lp-eyebrow {color:#8B9BB4;font-size:.76rem;letter-spacing:.16em;
+                     font-weight:700;text-transform:uppercase;margin-bottom:.25rem;}
+        .lp-subtitle {color:#A7B0BF;font-size:1rem;margin-top:-.45rem;}
+        div[data-testid="stMetric"] {
+            background:rgba(128,140,160,.08);
+            border:1px solid rgba(128,140,160,.18);
+            padding:1rem 1.1rem;border-radius:12px;
+        }
+        div[data-testid="stMetricLabel"] p {font-size:.86rem;}
+        div[data-testid="stMetricValue"] {font-weight:700;}
+        div[data-testid="stFileUploader"] {
+            border:1px dashed rgba(128,150,180,.45);
+            border-radius:12px;padding:.35rem;
+        }
+        .lp-note {color:#98A2B3;font-size:.82rem;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_metrics(predictions: pd.DataFrame) -> None:
     total = len(predictions)
     anomalies = int(predictions["prediction"].sum()) if total else 0
@@ -42,61 +66,92 @@ def render_metrics(predictions: pd.DataFrame) -> None:
     col4.metric("Anomali oranı", f"%{anomaly_rate:.2f}")
 
 
+def render_score_chart(predictions: pd.DataFrame) -> None:
+    if predictions.empty:
+        st.info("Grafik oluşturmak için tahmin sonucu bulunmuyor.")
+        return
+    bins = pd.cut(predictions["anomaly_score"], bins=10, include_lowest=True)
+    distribution = bins.value_counts(sort=False)
+    chart_data = distribution.rename_axis("Skor aralığı").to_frame("Blok sayısı")
+    chart_data.index = chart_data.index.astype(str)
+    st.bar_chart(chart_data, y="Blok sayısı", use_container_width=True)
+
+
 def main() -> None:
     st.set_page_config(
-        page_title="LogPilot AI | HDFS Log Analizi",
+        page_title="LogPilot AI | HDFS Log Intelligence",
         page_icon="🔎",
         layout="wide",
+        initial_sidebar_state="expanded",
     )
+    inject_styles()
+
+    st.markdown('<div class="lp-eyebrow">HDFS INTELLIGENT LOG ANALYTICS</div>',
+                unsafe_allow_html=True)
     st.title("🔎 LogPilot AI")
-    st.caption("HDFS blok seviyesinde log anomalisi tespiti")
-    st.write(
-        "Bir HDFS log dosyası yükleyin. LogPilot, Drain3 ile olay şablonlarını "
-        "eşleştirir ve her blok için Logistic Regression anomali skoru üretir."
+    st.markdown(
+        '<div class="lp-subtitle">Blok seviyesinde log analizi · '
+        'Drain3 event parsing · Logistic Regression</div>',
+        unsafe_allow_html=True,
     )
+    st.write("HDFS log dosyanızı yükleyin; blokları analiz edin, şüpheli kayıtları "
+             "inceleyin ve kararın dayandığı ham log kanıtlarına ulaşın.")
+    st.divider()
 
     with st.sidebar:
-        st.header("Model bilgisi")
-        artifact_dir = st.text_input(
-            "Model paketi dizini", value=str(DEFAULT_ARTIFACTS)
-        )
-        st.caption("Varsayılan model: Seed 11 Logistic Regression")
+        st.header("⚙️ Analiz ayarları")
+        artifact_dir = st.text_input("Model paketi dizini", value=str(DEFAULT_ARTIFACTS))
+        st.caption("Aktif model: Seed 11 · Logistic Regression")
+        st.caption("Karar eşiği model paketindeki doğrulanmış validation eşiğidir.")
         st.divider()
-        st.caption(
-            "Model, yalnızca eğitim bloklarıyla oluşturulmuş sabit Drain3 "
-            "şablonlarını kullanır. Tahmin sırasında yeni şablon öğrenmez."
+        st.subheader("İşleme hattı")
+        st.markdown(
+            "1. HDFS log ayrıştırma\n"
+            "2. Dondurulmuş Drain3 şablon eşleştirme\n"
+            "3. Block bazlı olay sayımı\n"
+            "4. Logistic Regression tahmini"
         )
+        st.divider()
+        st.caption("Tahmin sırasında Drain3 yeni event template öğrenmez.")
 
     try:
         predictor = load_predictor(str(Path(artifact_dir).expanduser().resolve()))
     except Exception as exc:
         st.error(f"Model paketi yüklenemedi: {exc}")
-        st.info(
-            "Önce `python -m scripts.export_inference_bundle` komutuyla "
-            "model_artifacts/seed_11 paketini oluşturun."
-        )
+        st.info("Gerekirse python -m scripts.export_inference_bundle komutuyla "
+                "model_artifacts/seed_11 paketi oluşturulmalıdır.")
         st.stop()
 
+    st.subheader("📂 Log dosyası")
     uploaded_file = st.file_uploader(
         "HDFS log dosyası seçin",
         type=["log", "txt"],
-        help="Dosya UTF-8 olarak okunur; çözümlenemeyen karakterler değiştirilir.",
+        help="UTF-8 metin dosyaları desteklenir. Büyük dosyaların işlenmesi zaman alabilir.",
     )
     if uploaded_file is None:
-        st.info("Analize başlamak için bir HDFS log dosyası yükleyin.")
+        st.info("Başlamak için bir .log veya .txt dosyası yükleyin.")
         return
 
-    st.caption(
-        f"Dosya: {uploaded_file.name} · "
-        f"{uploaded_file.size / (1024 * 1024):.2f} MB"
-    )
-    if st.button("Logları analiz et", type="primary", use_container_width=True):
+    st.caption(f"Seçilen dosya: **{uploaded_file.name}** · "
+               f"{uploaded_file.size / (1024 * 1024):.2f} MB")
+    analyze_col, clear_col = st.columns([3, 1])
+    with analyze_col:
+        run_analysis = st.button("▶  Logları analiz et", type="primary",
+                                 use_container_width=True)
+    with clear_col:
+        clear_analysis = st.button("Sonuçları temizle", use_container_width=True)
+
+    if clear_analysis:
+        for key in ("logpilot_predictions", "logpilot_stats", "logpilot_filename",
+                    "logpilot_evidence"):
+            st.session_state.pop(key, None)
+        st.rerun()
+
+    if run_analysis:
         try:
             uploaded_file.seek(0)
-            with st.spinner("Log satırları işleniyor ve bloklar puanlanıyor..."):
-                predictions, stats = predictor.predict_lines(
-                    decoded_lines(uploaded_file)
-                )
+            with st.spinner("Log satırları ayrıştırılıyor ve bloklar puanlanıyor..."):
+                predictions, stats = predictor.predict_lines(decoded_lines(uploaded_file))
             st.session_state["logpilot_predictions"] = predictions
             st.session_state["logpilot_stats"] = stats
             st.session_state["logpilot_filename"] = uploaded_file.name
@@ -107,83 +162,139 @@ def main() -> None:
 
     predictions = st.session_state.get("logpilot_predictions")
     if predictions is None:
+        st.info("Analiz başlatıldığında özet, skor dağılımı ve block inceleme alanları burada görünecek.")
+        return
+
+    analyzed_filename = st.session_state.get("logpilot_filename", "")
+    if analyzed_filename != uploaded_file.name:
+        st.warning("Yeni bir dosya seçtiniz. Güncel sonuçları görmek için analizi yeniden çalıştırın.")
         return
 
     stats = st.session_state["logpilot_stats"]
-    st.subheader("Analiz özeti")
+    st.divider()
+    st.subheader("📊 Analiz özeti")
     render_metrics(predictions)
     st.caption(
-        f"Okunan satır: {stats['lines_seen']:,} · "
-        f"Block ID içeren satır: {stats['lines_with_block_ids']:,} · "
-        f"Eşleşmeyen satır: {stats['unmatched_lines']:,} · "
+        f"Dosya: {analyzed_filename}  ·  Okunan satır: {stats['lines_seen']:,}  ·  "
+        f"Block ID içeren satır: {stats['lines_with_block_ids']:,}  ·  "
+        f"Eşleşmeyen satır: {stats['unmatched_lines']:,}  ·  "
         f"Karar eşiği: {predictor.threshold:.6f}"
     )
 
+    overview_tab, anomalies_tab, evidence_tab = st.tabs(
+        ["Genel görünüm", "Anomali inceleme", "Ham log kanıtı"]
+    )
+
+    with overview_tab:
+        chart_col, context_col = st.columns([1.35, 1])
+        with chart_col:
+            st.markdown("#### Anomali skor dağılımı")
+            render_score_chart(predictions)
+        with context_col:
+            st.markdown("#### Sınıf dağılımı")
+            counts = predictions["prediction_label"].value_counts()
+            class_data = pd.DataFrame({
+                "Blok sayısı": [int(counts.get("Normal", 0)),
+                                int(counts.get("Anomaly", 0))]
+            }, index=["Normal", "Anomali"])
+            st.bar_chart(class_data, y="Blok sayısı", use_container_width=True)
+            st.markdown("#### Model bilgisi")
+            st.write("**Model:** Logistic Regression")
+            st.write("**Seed:** 11")
+            st.write(f"**Karar eşiği:** {predictor.threshold:.6f}")
+            st.write("**Parser:** Train-only, frozen Drain3")
+        st.info("Anomali etiketi modelin sınıflandırma kararıdır; tek başına kök nedeni kanıtlamaz.")
+
     anomalies = predictions.loc[predictions["prediction"] == 1].copy()
-    st.subheader("Tespit edilen anomaliler")
-    if anomalies.empty:
-        st.success("Bu dosyada seçilen karar eşiğini aşan blok bulunamadı.")
-    else:
-        st.dataframe(
-            anomalies,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "block_id": st.column_config.TextColumn("Block ID"),
-                "anomaly_score": st.column_config.ProgressColumn(
-                    "Anomali skoru", min_value=0.0, max_value=1.0, format="%.4f"
-                ),
-                "prediction": None,
-                "prediction_label": st.column_config.TextColumn("Sınıf"),
-            },
-        )
-        csv = anomalies.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            "Anomali listesini CSV indir",
-            data=csv,
-            file_name="logpilot_anomalies.csv",
-            mime="text/csv",
-        )
+    with anomalies_tab:
+        st.markdown("#### Tespit edilen anomaliler")
+        if anomalies.empty:
+            st.success("Bu dosyada seçilen karar eşiğini aşan blok bulunamadı.")
+        else:
+            filter_col, score_col = st.columns([1.5, 1])
+            with filter_col:
+                search_text = st.text_input("Block ID ara", placeholder="blk_...")
+            with score_col:
+                min_score = st.slider("Minimum anomali skoru", 0.0, 1.0, 0.0, 0.01)
+            filtered = anomalies[anomalies["anomaly_score"] >= min_score].copy()
+            if search_text.strip():
+                filtered = filtered[
+                    filtered["block_id"].astype(str).str.contains(
+                        search_text.strip(), case=False, regex=False
+                    )
+                ]
+            st.caption(f"{len(filtered):,} / {len(anomalies):,} anomali gösteriliyor.")
+            st.dataframe(
+                filtered,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "block_id": st.column_config.TextColumn("Block ID"),
+                    "anomaly_score": st.column_config.ProgressColumn(
+                        "Anomali skoru", min_value=0.0, max_value=1.0, format="%.4f"
+                    ),
+                    "prediction": None,
+                    "prediction_label": st.column_config.TextColumn("Sınıf"),
+                },
+            )
+            csv = anomalies.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                "⬇ Anomali listesini CSV indir", data=csv,
+                file_name="logpilot_anomalies.csv", mime="text/csv",
+            )
+            all_csv = predictions.to_csv(index=False).encode("utf-8-sig")
+            st.download_button(
+                "⬇ Tüm block sonuçlarını CSV indir", data=all_csv,
+                file_name="logpilot_all_predictions.csv", mime="text/csv",
+            )
 
-        selected_block = st.selectbox(
-            "Log kanıtını görüntülemek için blok seçin",
-            options=anomalies["block_id"].astype(str).tolist(),
-        )
-        if st.button("Seçili bloğun log kanıtını göster"):
-            uploaded_file.seek(0)
-            temporary_path = None
-            try:
-                # On Windows, a still-open NamedTemporaryFile cannot reliably be
-                # reopened by Path.open(). Close it before evidence extraction.
-                with tempfile.NamedTemporaryFile(
-                    suffix=".log", delete=False
-                ) as temporary_log:
-                    temporary_log.write(uploaded_file.getbuffer())
-                    temporary_path = Path(temporary_log.name)
+    with evidence_tab:
+        st.markdown("#### Block bazında ham log inceleme")
+        if anomalies.empty:
+            st.info("İncelenecek anomali bulunmuyor.")
+        else:
+            evidence_options = anomalies["block_id"].astype(str).tolist()
+            selected_block = st.selectbox(
+                "Log kanıtını görüntülemek için block seçin",
+                options=evidence_options,
+                key="logpilot_selected_block",
+            )
+            if st.button("Seçili block'un log kanıtını getir", type="primary"):
+                temporary_path = None
+                try:
+                    uploaded_file.seek(0)
+                    with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as temp:
+                        temp.write(uploaded_file.getbuffer())
+                        temporary_path = Path(temp.name)
+                    evidence = predictor.extract_block_evidence(
+                        temporary_path, {selected_block}, max_lines_per_block=100
+                    )
+                    st.session_state["logpilot_evidence"] = {
+                        "block_id": selected_block,
+                        "lines": evidence.get(selected_block, []),
+                    }
+                except Exception as exc:
+                    st.error(f"Ham log kanıtı çıkarılamadı: {exc}")
+                finally:
+                    if temporary_path is not None:
+                        temporary_path.unlink(missing_ok=True)
 
-                evidence = predictor.extract_block_evidence(
-                    temporary_path, {selected_block}, max_lines_per_block=100
-                )
-            finally:
-                if temporary_path is not None:
-                    temporary_path.unlink(missing_ok=True)
-            st.session_state["logpilot_evidence"] = {
-                "block_id": selected_block,
-                "lines": evidence.get(selected_block, []),
-            }
-
-        evidence = st.session_state.get("logpilot_evidence")
-        if evidence:
-            st.markdown(f"**{evidence['block_id']} için ham log kanıtı**")
-            if evidence["lines"]:
-                st.code("\n".join(evidence["lines"]), language="text")
+            evidence_state = st.session_state.get("logpilot_evidence")
+            if evidence_state and evidence_state.get("block_id") == selected_block:
+                st.markdown(f"**{selected_block} · Ham log kayıtları**")
+                if evidence_state["lines"]:
+                    st.caption(f"{len(evidence_state['lines'])} satır gösteriliyor (blok başına en fazla 100).")
+                    st.code("\n".join(evidence_state["lines"]), language="text")
+                else:
+                    st.warning("Seçilen block için ham log satırı bulunamadı.")
             else:
-                st.warning("Seçilen blok için ham log satırı bulunamadı.")
+                st.caption("Kanıtı görüntülemek için bir block seçip butona basın.")
 
-    st.caption(
-        "Not: Anomali tespiti bir sınıflandırma sonucudur; tek başına kök nedeni "
-        "kanıtlamaz. Açıklamalar, ilerleyen aşamada seçilen bloğun log kanıtına "
-        "dayalı olarak üretilecektir."
+    st.divider()
+    st.markdown(
+        '<div class="lp-note">LogPilot AI · HDFS block-level anomaly detection · '
+        'Model tahmini ve log kanıtı ayrı değerlendirilmelidir.</div>',
+        unsafe_allow_html=True,
     )
 
 
