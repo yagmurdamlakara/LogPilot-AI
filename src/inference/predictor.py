@@ -1,6 +1,7 @@
 """Load a packaged LogPilot model and score HDFS blocks."""
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
@@ -15,6 +16,14 @@ from src.inference.feature_builder import FrozenBlockFeatureBuilder
 from src.preprocessing.log_parser import HDFSLogParser
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 class LogPilotPredictor:
     def __init__(self, artifact_dir: str | Path) -> None:
         self.artifact_dir = Path(artifact_dir)
@@ -27,6 +36,10 @@ class LogPilotPredictor:
                 raise FileNotFoundError(f"Required inference artifact not found: {path}")
 
         self.metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if _sha256(state_path) != self.metadata.get("drain3_state_sha256"):
+            raise ValueError("Drain3 state SHA-256 does not match bundle metadata.")
+        if _sha256(model_path) != self.metadata.get("classifier_sha256"):
+            raise ValueError("Classifier SHA-256 does not match bundle metadata.")
         config = TemplateMinerConfig()
         config.load(str(config_path))
         self.miner = TemplateMiner(
