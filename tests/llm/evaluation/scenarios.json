@@ -1,0 +1,85 @@
+{
+  "description": "Controlled synthetic fixtures for checking LLM explanation behavior. These are not real HDFS incident records and must not be used as model-performance data.",
+  "model": "qwen3:4b",
+  "scenarios": [
+    {
+      "id": "anomaly_sparse_evidence",
+      "description": "Anomaly prediction with only two limited log records; root cause is not established.",
+      "block_id": "blk_quality_sparse_001",
+      "prediction": 1,
+      "anomaly_score": 0.99,
+      "log_lines": [
+        "SYNTHETIC FIXTURE: NameSystem.delete operation observed for block.",
+        "SYNTHETIC FIXTURE: block blk_quality_sparse_001 added to invalidSet."
+      ],
+      "expected_confidence": [
+        "düşük"
+      ],
+      "purpose": "A high classifier score must not force high explanation confidence when evidence is sparse."
+    },
+    {
+      "id": "anomaly_multiple_indicators",
+      "description": "Several coherent synthetic records describe a sequence, but do not prove the underlying root cause.",
+      "block_id": "blk_quality_sequence_002",
+      "prediction": 1,
+      "anomaly_score": 0.93,
+      "log_lines": [
+        "SYNTHETIC FIXTURE: block blk_quality_sequence_002 received by DataNode.",
+        "SYNTHETIC FIXTURE: checksum verification failed for block blk_quality_sequence_002.",
+        "SYNTHETIC FIXTURE: block blk_quality_sequence_002 marked for invalidation."
+      ],
+      "expected_confidence": [
+        "düşük",
+        "orta"
+      ],
+      "purpose": "The explanation may describe the observed sequence, but must not assert an unproven root cause."
+    },
+    {
+      "id": "normal_block",
+      "description": "Normal classifier result with routine synthetic records.",
+      "block_id": "blk_quality_normal_003",
+      "prediction": 0,
+      "anomaly_score": 0.02,
+      "log_lines": [
+        "SYNTHETIC FIXTURE: block blk_quality_normal_003 received.",
+        "SYNTHETIC FIXTURE: block blk_quality_normal_003 replication completed."
+      ],
+      "expected_confidence": [
+        "düşük",
+        "orta",
+        "yüksek"
+      ],
+      "purpose": "The LLM must preserve the normal classifier result and avoid relabeling the block."
+    },
+    {
+      "id": "anomaly_irrelevant_evidence",
+      "description": "High anomaly score with generic records that do not explain a specific cause.",
+      "block_id": "blk_quality_weak_004",
+      "prediction": 1,
+      "anomaly_score": 0.98,
+      "log_lines": [
+        "SYNTHETIC FIXTURE: INFO service heartbeat received.",
+        "SYNTHETIC FIXTURE: INFO periodic status update completed."
+      ],
+      "expected_confidence": [
+        "düşük"
+      ],
+      "purpose": "The LLM must acknowledge that the supplied records do not explain the anomaly."
+    },
+    {
+      "id": "ambiguous_records",
+      "description": "Synthetic records contain apparently conflicting status messages.",
+      "block_id": "blk_quality_ambiguous_005",
+      "prediction": 1,
+      "anomaly_score": 0.81,
+      "log_lines": [
+        "SYNTHETIC FIXTURE: block blk_quality_ambiguous_005 marked invalid.",
+        "SYNTHETIC FIXTURE: block blk_quality_ambiguous_005 reported as finalized."
+      ],
+      "expected_confidence": [
+        "düşük"
+      ],
+      "purpose": "The LLM must surface ambiguity instead of choosing an unsupported interpretation."
+    }
+  ]
+}
