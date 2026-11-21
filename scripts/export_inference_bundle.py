@@ -96,6 +96,12 @@ def main() -> int:
             f"Feature schema mismatch: templates imply {len(feature_columns)} features, "
             f"but classifier expects {expected_features}."
         )
+    saved_feature_names = getattr(classifier, "feature_names_in_", None)
+    if saved_feature_names is not None and list(saved_feature_names) != feature_columns:
+        raise ValueError(
+            "Event feature order from Drain3 templates does not exactly match "
+            "the feature order recorded by the trained classifier."
+        )
     metrics = json.loads((args.experiment_dir / "metrics.json").read_text(encoding="utf-8"))
     threshold = float(metrics["models"]["logistic_regression"]["threshold"])
 
