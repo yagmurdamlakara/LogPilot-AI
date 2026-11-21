@@ -161,7 +161,7 @@ def main() -> None:
 
     if clear_analysis:
         for key in ("logpilot_predictions", "logpilot_stats", "logpilot_filename",
-                    "logpilot_evidence"):
+                    "logpilot_evidence", "logpilot_explanation"):
             st.session_state.pop(key, None)
         st.rerun()
 
@@ -174,6 +174,7 @@ def main() -> None:
             st.session_state["logpilot_stats"] = stats
             st.session_state["logpilot_filename"] = uploaded_file.name
             st.session_state.pop("logpilot_evidence", None)
+            st.session_state.pop("logpilot_explanation", None)
         except Exception as exc:
             st.exception(exc)
             st.stop()
