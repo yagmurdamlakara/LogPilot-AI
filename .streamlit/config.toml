@@ -1,0 +1,4 @@
+# Allow large HDFS log uploads (2 GiB).
+[server]
+maxUploadSize = 2048
+maxMessageSize = 2048
