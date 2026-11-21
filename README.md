@@ -117,6 +117,5 @@ dashboard remain usable.
 
 The model bundle under `model_artifacts/seed_11/` is generated locally and is
 not committed to Git. The app uses the frozen train-only Drain3 parser and the
-Seed 11 Logistic Regression classifier. LLM-based root-cause explanations are
-not part of this first UI increment; detected anomalies are not, by themselves,
-proof of a root cause.
+Seed 11 Logistic Regression classifier. LLM explanations are an optional
+explanatory layer; detected anomalies are not, by themselves, proof of a root cause.
