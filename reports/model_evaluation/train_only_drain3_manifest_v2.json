@@ -1,0 +1,615 @@
+{
+  "schema_version": 2,
+  "experiment": "train_only_drain3_frozen_inference",
+  "recorded_at_utc": "2026-11-21T18:42:43.733549+00:00",
+  "source_control": {
+    "repository": "yagmurdamlakara/LogPilot-AI",
+    "branch": "main",
+    "commit": "ece190ac7175bd22921a502d08231e609dc063b7",
+    "working_tree_status": "M experiments/summary/multi_seed_results.csv\n M reports/model_evaluation/TRAIN_ONLY_DRAIN3_EXPERIMENT_REPORT.md\n M scripts/record_train_only_drain3.py\n M src/llm/__init__.py\n?? .vscode/\n?? experiments.zip\n?? experiments/baseline/\n?? experiments/baseline_seed_11/\n?? experiments/baseline_seed_22/\n?? experiments/baseline_seed_33/\n?? experiments/baseline_seed_44/\n?? experiments/baseline_seed_55/\n?? experiments/threshold_tuning/\n?? reports/llm_evaluation/\n?? reports/model_evaluation/split_audit.json\n?? reports/model_evaluation/train_only_drain3_manifest.json\n?? reports/model_evaluation/train_only_drain3_split_audit.json\n?? tests/llm/__init__.py\n?? tests/llm/test_analyzer_manual.py\n?? tests/test_record_train_only_drain3.py"
+  },
+  "environment": {
+    "python": "3.13.13 (tags/v3.13.13:01104ce, Apr  7 2026, 19:25:48) [MSC v.1944 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\ydaml\\Documents\\LogPilot-AI\\.venv\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "machine": "AMD64",
+    "packages": {
+      "drain3": "0.9.11",
+      "pandas": "3.1.1",
+      "scikit-learn": "1.9.1",
+      "numpy": "2.5.5",
+      "joblib": "1.6.0",
+      "scipy": "1.18.1"
+    }
+  },
+  "dataset": {
+    "path": "data/processed/hdfs_full_labeled.csv",
+    "size_bytes": 67505299,
+    "sha256": "48c692c37b8dbceaaab4e6ef1a3470ce2d88fe82782b44a93f746492b344915a",
+    "rows": 575061,
+    "modified_time": "2026-11-19T14:11:02.312009+00:00",
+    "identity_scope": "hash_calculated_at_manifest_recording_time"
+  },
+  "split_audit": {
+    "status": "PASS",
+    "seed_count": 5,
+    "all_seed_statuses": {
+      "11": "PASS",
+      "22": "PASS",
+      "33": "PASS",
+      "44": "PASS",
+      "55": "PASS"
+    },
+    "report_path": "reports/model_evaluation/train_only_drain3_split_audit.json"
+  },
+  "drain3_configuration": {
+    "historical_run": {
+      "drain3_version": "0.9.11",
+      "config_source": "TemplateMinerConfig defaults",
+      "ini_loaded": false,
+      "effective_defaults": {
+        "profiling_enabled": false,
+        "profiling_report_sec": 60,
+        "snapshot_interval_minutes": 5,
+        "snapshot_compressed": true,
+        "drain_engine": "Drain",
+        "similarity_threshold": 0.4,
+        "depth": 4,
+        "max_children": 100,
+        "max_clusters": null,
+        "extra_delimiters": [],
+        "parametrize_numeric_tokens": true,
+        "masking_rules": [],
+        "mask_prefix": "<",
+        "mask_suffix": ">",
+        "parameter_extraction_cache_capacity": 3000
+      },
+      "note": "The completed historical run constructed TemplateMiner() without a drain3.ini, so Drain3 0.9.11 defaults applied."
+    },
+    "future_run": {
+      "path": "configs/drain3_train_only.ini",
+      "size_bytes": 643,
+      "sha256": "d3807c585bacaf2b62a95f4445c17296827dc307090393bb95104ad476ff38bf",
+      "text": "# Explicit equivalent of Drain3 0.9.11 TemplateMinerConfig defaults.\n# This file is used for future train-only Drain3 runs.\n# Historical runs were executed without drain3.ini and therefore used these defaults.\n\n[PROFILING]\nenabled = false\nreport_sec = 60\n\n[SNAPSHOT]\nsnapshot_interval_minutes = 5\ncompress_state = true\n\n[DRAIN]\nengine = Drain\nsim_th = 0.4\ndepth = 4\nmax_children = 100\n# max_clusters is intentionally omitted: Drain3 default is None (unlimited).\nextra_delimiters = []\nparametrize_numeric_tokens = true\n\n[MASKING]\nmasking = []\nmask_prefix = <\nmask_suffix = >\nparameter_extraction_cache_capacity = 3000\n"
+    }
+  },
+  "experiment_settings": {
+    "seeds": [
+      11,
+      22,
+      33,
+      44,
+      55
+    ],
+    "train_fraction": 0.6,
+    "validation_fraction": 0.2,
+    "test_fraction": 0.2,
+    "split_strategy": "random stratified block-level split",
+    "parser_fit_scope": "training-block log lines only",
+    "validation_test_parser_behavior": "frozen TemplateMiner.match; no cluster updates",
+    "unmatched_message_handling": "__UNMATCHED__ event feature",
+    "standard_deviation": "sample standard deviation (ddof=1)"
+  },
+  "seed_results": [
+    {
+      "seed": 11,
+      "train_blocks": 345036,
+      "validation_blocks": 115012,
+      "test_blocks": 115013,
+      "trained_drain_clusters": 46,
+      "matched_log_lines": 11175625,
+      "unmatched_log_lines": 4,
+      "unmatched_fraction": 3.5792168834523766e-07,
+      "metrics": {
+        "isolation_forest": {
+          "precision": 0.8418584825234442,
+          "recall": 0.5864014251781473,
+          "f1": 0.6912845642282114,
+          "confusion_matrix": [
+            [
+              111274,
+              371
+            ],
+            [
+              1393,
+              1975
+            ]
+          ],
+          "threshold": 0.6574263568380229,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.8520159503766062,
+            "recall": 0.5709619952494062,
+            "f1": 0.6837333333333333,
+            "confusion_matrix": [
+              [
+                111310,
+                334
+              ],
+              [
+                1445,
+                1923
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.015556730977947584
+        },
+        "logistic_regression": {
+          "precision": 0.9926166568222091,
+          "recall": 0.9979216152019003,
+          "f1": 0.9952620669233047,
+          "confusion_matrix": [
+            [
+              111620,
+              25
+            ],
+            [
+              7,
+              3361
+            ]
+          ],
+          "threshold": 0.9155102391580804,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.9952634695085849,
+            "recall": 0.9982185273159145,
+            "f1": 0.9967388081826267,
+            "confusion_matrix": [
+              [
+                111628,
+                16
+              ],
+              [
+                6,
+                3362
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.0004998052393267566
+        }
+      },
+      "artifacts": [
+        {
+          "path": "experiments/train_only_drain3/seed_11/metrics.json",
+          "size_bytes": 1825,
+          "sha256": "616ad4d0edfb1fd98ea4c032eeb1d8b2b52c6d48a0f6c213d9f355a52ee0d97b"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_11/test_predictions.csv",
+          "size_bytes": 8323307,
+          "sha256": "2a356aa8c08b8211855c71dab8ce428328fbe9b38a7e57460c1368be2dae8d52"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_11/baseline_models.joblib",
+          "size_bytes": 832738,
+          "sha256": "e795a7ef50dbdaaff1ae831c824420493db7c4f9a0312ba5c815c92faec326e4"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_11/drain3_templates.json",
+          "size_bytes": 9391,
+          "sha256": "429121b316351a5bd397b14474156684c91702c72cf35ec1c8cdee7e15f41340"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_11/experiment_report.json",
+          "size_bytes": 2167,
+          "sha256": "3099d0d2bbb1b26bf5e8f136b545295f36086d894b62d613d91e8757602cdb63"
+        }
+      ]
+    },
+    {
+      "seed": 22,
+      "train_blocks": 345036,
+      "validation_blocks": 115012,
+      "test_blocks": 115013,
+      "trained_drain_clusters": 45,
+      "matched_log_lines": 11175627,
+      "unmatched_log_lines": 2,
+      "unmatched_fraction": 1.7896084417261883e-07,
+      "metrics": {
+        "isolation_forest": {
+          "precision": 0.8162847790507365,
+          "recall": 0.5923396674584323,
+          "f1": 0.6865106675843083,
+          "confusion_matrix": [
+            [
+              111196,
+              449
+            ],
+            [
+              1373,
+              1995
+            ]
+          ],
+          "threshold": 0.6309954208672959,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.8088665830196571,
+            "recall": 0.5742280285035629,
+            "f1": 0.6716443827053308,
+            "confusion_matrix": [
+              [
+                111187,
+                457
+              ],
+              [
+                1434,
+                1934
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.004383781833290956
+        },
+        "logistic_regression": {
+          "precision": 0.9856262833675564,
+          "recall": 0.997624703087886,
+          "f1": 0.9915891987605135,
+          "confusion_matrix": [
+            [
+              111596,
+              49
+            ],
+            [
+              8,
+              3360
+            ]
+          ],
+          "threshold": 0.9647781817658587,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.9827485380116959,
+            "recall": 0.9979216152019003,
+            "f1": 0.9902769593400118,
+            "confusion_matrix": [
+              [
+                111585,
+                59
+              ],
+              [
+                7,
+                3361
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.00018613287204739676
+        }
+      },
+      "artifacts": [
+        {
+          "path": "experiments/train_only_drain3/seed_22/metrics.json",
+          "size_bytes": 1825,
+          "sha256": "ef3b780c37e397eb6c17c473f02439772ebc45e012d42419ca8c5386fdec4ef8"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_22/test_predictions.csv",
+          "size_bytes": 8317343,
+          "sha256": "49163df21cf43830868216e8188262bd5ce4b1fe654fb8ae4965b83b8332c429"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_22/baseline_models.joblib",
+          "size_bytes": 822978,
+          "sha256": "350aa4bada2c8b26be1e7500994819b2c9a414e0129eee3b92a40b553def9a7b"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_22/drain3_templates.json",
+          "size_bytes": 9166,
+          "sha256": "64cf0c02dd97d1ed49972da7c4f45c2dfd9b8ce7036672ac9e7fea62ba1ee992"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_22/experiment_report.json",
+          "size_bytes": 2167,
+          "sha256": "dc94a6115d40bdb2549006c37626519132fe794e8bc6a2aa65f1d74cb5750482"
+        }
+      ]
+    },
+    {
+      "seed": 33,
+      "train_blocks": 345036,
+      "validation_blocks": 115012,
+      "test_blocks": 115013,
+      "trained_drain_clusters": 45,
+      "matched_log_lines": 11175624,
+      "unmatched_log_lines": 5,
+      "unmatched_fraction": 4.4740211043154706e-07,
+      "metrics": {
+        "isolation_forest": {
+          "precision": 0.8423817863397548,
+          "recall": 0.5712589073634204,
+          "f1": 0.6808209483368719,
+          "confusion_matrix": [
+            [
+              111285,
+              360
+            ],
+            [
+              1444,
+              1924
+            ]
+          ],
+          "threshold": 0.6562999404975127,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.839213934792318,
+            "recall": 0.5580635580635581,
+            "f1": 0.670353193007492,
+            "confusion_matrix": [
+              [
+                111285,
+                360
+              ],
+              [
+                1488,
+                1879
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.006082753254010903
+        },
+        "logistic_regression": {
+          "precision": 0.9929182649749189,
+          "recall": 0.9991092636579573,
+          "f1": 0.9960041438508214,
+          "confusion_matrix": [
+            [
+              111621,
+              24
+            ],
+            [
+              3,
+              3365
+            ]
+          ],
+          "threshold": 0.9193625335223824,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.994378698224852,
+            "recall": 0.9982179982179982,
+            "f1": 0.9962946494738403,
+            "confusion_matrix": [
+              [
+                111626,
+                19
+              ],
+              [
+                6,
+                3361
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.00025346178256568507
+        }
+      },
+      "artifacts": [
+        {
+          "path": "experiments/train_only_drain3/seed_33/metrics.json",
+          "size_bytes": 1823,
+          "sha256": "f5ceba89e0dbfb2f38cc67384b983c3bab7dac25a9eaac5387a50625aff4ffb4"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_33/test_predictions.csv",
+          "size_bytes": 8380363,
+          "sha256": "73e4db3cc5b9f3d10a7fedc7735a9e6c8d39e51e73a719d69bf59a021d38582d"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_33/baseline_models.joblib",
+          "size_bytes": 823858,
+          "sha256": "c253cd71eab904b9c31b3d7d23224a987489a493c4bf30fddb3f9e5312a093ef"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_33/drain3_templates.json",
+          "size_bytes": 9297,
+          "sha256": "bf2e5354c5397764d3347ade6e017878256a9fdc05b04923565c3b4da75cd809"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_33/experiment_report.json",
+          "size_bytes": 2165,
+          "sha256": "58d3083856e2d2d1bd71263d1b4188af2c5c6ddbbfd2c9ad3e82178f6e2e08ed"
+        }
+      ]
+    },
+    {
+      "seed": 44,
+      "train_blocks": 345036,
+      "validation_blocks": 115012,
+      "test_blocks": 115013,
+      "trained_drain_clusters": 44,
+      "matched_log_lines": 11175612,
+      "unmatched_log_lines": 17,
+      "unmatched_fraction": 1.52116717546726e-06,
+      "metrics": {
+        "isolation_forest": {
+          "precision": 0.8407615750757248,
+          "recall": 0.5769002375296912,
+          "f1": 0.684275400598697,
+          "confusion_matrix": [
+            [
+              111277,
+              368
+            ],
+            [
+              1425,
+              1943
+            ]
+          ],
+          "threshold": 0.6448578113988878,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.8445414847161572,
+            "recall": 0.5743985743985744,
+            "f1": 0.6837546402686937,
+            "confusion_matrix": [
+              [
+                111289,
+                356
+              ],
+              [
+                1433,
+                1934
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.0053281342108695545
+        },
+        "logistic_regression": {
+          "precision": 0.9625500285877644,
+          "recall": 0.9997030878859857,
+          "f1": 0.9807748325080105,
+          "confusion_matrix": [
+            [
+              111514,
+              131
+            ],
+            [
+              1,
+              3367
+            ]
+          ],
+          "threshold": 0.5220833088892018,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.9652996845425867,
+            "recall": 0.9997029997029997,
+            "f1": 0.9822001750802452,
+            "confusion_matrix": [
+              [
+                111524,
+                121
+              ],
+              [
+                1,
+                3366
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.00019772895234841548
+        }
+      },
+      "artifacts": [
+        {
+          "path": "experiments/train_only_drain3/seed_44/metrics.json",
+          "size_bytes": 1828,
+          "sha256": "ef394740cf4704271e0e03adf32846f08e02e2315db9c78a47de8185c6c6edfa"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_44/test_predictions.csv",
+          "size_bytes": 8332994,
+          "sha256": "9751a35b5c1f7e486334fcda96442ca3af43291bcb82ebcb11c62948b3fb2b68"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_44/baseline_models.joblib",
+          "size_bytes": 836146,
+          "sha256": "3b9cad97945ba6d5bebabc080c79e4a04edf121ef4dea4eed17380f949034357"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_44/drain3_templates.json",
+          "size_bytes": 9074,
+          "sha256": "3644b250af5c97e94a3777ac36cf500c5e68d075ec4a97a5cdb4b5e9b8a98a92"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_44/experiment_report.json",
+          "size_bytes": 2169,
+          "sha256": "0b845eb224f1b4204f36d2ba90da4b27fb53a59537ba8f61db34906095569837"
+        }
+      ]
+    },
+    {
+      "seed": 55,
+      "train_blocks": 345036,
+      "validation_blocks": 115012,
+      "test_blocks": 115013,
+      "trained_drain_clusters": 45,
+      "matched_log_lines": 11175625,
+      "unmatched_log_lines": 4,
+      "unmatched_fraction": 3.5792168834523766e-07,
+      "metrics": {
+        "isolation_forest": {
+          "precision": 0.8354866494401378,
+          "recall": 0.5760095011876485,
+          "f1": 0.6818980667838312,
+          "confusion_matrix": [
+            [
+              111263,
+              382
+            ],
+            [
+              1428,
+              1940
+            ]
+          ],
+          "threshold": 0.63682581353225,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.8452173913043478,
+            "recall": 0.5771971496437055,
+            "f1": 0.6859562455892732,
+            "confusion_matrix": [
+              [
+                111288,
+                356
+              ],
+              [
+                1424,
+                1944
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.005018690061075503
+        },
+        "logistic_regression": {
+          "precision": 0.9810495626822158,
+          "recall": 0.9991092636579573,
+          "f1": 0.989997057958223,
+          "confusion_matrix": [
+            [
+              111580,
+              65
+            ],
+            [
+              3,
+              3365
+            ]
+          ],
+          "threshold": 0.816391276490458,
+          "validation_metrics_at_selected_threshold": {
+            "precision": 0.9759350536387359,
+            "recall": 0.9994061757719715,
+            "f1": 0.9875311720698254,
+            "confusion_matrix": [
+              [
+                111561,
+                83
+              ],
+              [
+                2,
+                3366
+              ]
+            ]
+          },
+          "test_inference_ms_per_block": 0.0001987271005193252
+        }
+      },
+      "artifacts": [
+        {
+          "path": "experiments/train_only_drain3/seed_55/metrics.json",
+          "size_bytes": 1821,
+          "sha256": "6d36de9f3491de41f0a1b2a44758471f04da22c17113930e71098b1e9c1f46f8"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_55/test_predictions.csv",
+          "size_bytes": 8378366,
+          "sha256": "e270b21e44219636f97eec21c30c5d123795858b79ed0295b08e1c28edd4adb8"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_55/baseline_models.joblib",
+          "size_bytes": 821570,
+          "sha256": "7bd0869fc70e76d5a28d82930b4124737e59286bc1f7651e85f41b8a7464d208"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_55/drain3_templates.json",
+          "size_bytes": 9170,
+          "sha256": "5ba1a8aa770bea3188e55d6a9d2038f99253f23d165e7bd616e939adec4b9ac1"
+        },
+        {
+          "path": "experiments/train_only_drain3/seed_55/experiment_report.json",
+          "size_bytes": 2163,
+          "sha256": "149cca406be7e5f9eec93297721e367b601eb114ecf752a6d8a72cbd1ff76f76"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "The split is random and block-level, not chronological.",
+    "This audit does not establish host-level independence.",
+    "These hashes identify bytes read when this manifest was recorded; they do not prove the byte identity of files at the historical experiment run time."
+  ]
+}

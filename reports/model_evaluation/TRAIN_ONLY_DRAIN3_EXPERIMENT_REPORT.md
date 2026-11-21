@@ -143,11 +143,13 @@ The local environment manifest recorded the following versions:
 | joblib | 1.6.0 |
 | SciPy | 1.18.1 |
 
-Recorded repository state at manifest creation:
+The earlier manifest record, `reports/model_evaluation/train_only_drain3_manifest.json`, captured this repository state when that manifest was created:
 
 - Repository: `yagmurdamlakara/LogPilot-AI`
 - Branch: `main`
 - Commit: `f06baaf48060acf255ac9f011dcb0ea46acf3c9e`
+
+This commit belongs to the earlier manifest record and is retained as its creation-time Git snapshot. The current schema v2 reproducibility manifest, `reports/model_evaluation/train_only_drain3_manifest_v2.json`, separately records commit `ece190ac7175bd22921a502d08231e609dc063b7`. Its commit and working-tree status describe the Git state captured when the schema v2 manifest was created. Both records are snapshots of their respective manifest creation times and may therefore differ.
 
 ### Drain3 configuration provenance
 
@@ -167,7 +169,14 @@ Future experiments should use the committed INI explicitly and record its hash, 
 2. **No host-level independence test:** blocks are separated between partitions, but this audit does not establish that related blocks from the same host or other correlated sources cannot occur across partitions.
 3. **Audit scope:** the audit verifies block-ID separation, prediction IDs/labels, and split sizes. It is not a universal leakage detector.
 4. **Historical configuration provenance:** the INI file documents settings for future runs and was not used in the completed five-seed experiment.
-5. **Dataset identity:** the manifest records the dataset path, row count, file size, and modification time, but not a cryptographic hash of the dataset contents.
+5. **Dataset identity in the earlier manifest:** the earlier manifest file records the dataset path, row count, file size, and modification time, but does not contain a cryptographic hash of the dataset contents.
+
+The schema v2 manifest generator records a streaming SHA-256 and byte size for the
+dataset and for each seed's metrics, test predictions, serialized models, Drain3
+templates, and experiment report. These hashes identify the bytes read when a
+schema v2 manifest is created; they do **not** prove that the same bytes were
+present when the historical experiment ran. The generator refuses to overwrite
+an existing output; use a new `--output` path when retaining an earlier manifest.
 
 ## 10. Conclusion
 
@@ -185,6 +194,20 @@ The completed local experiment produced, for each seed:
 - `drain3_templates.json`
 - `experiment_report.json`
 
-The local summary is `experiments/train_only_drain3/summary.json`. The split audit is `reports/model_evaluation/train_only_drain3_split_audit.json`, and the reproducibility manifest is `reports/model_evaluation/train_only_drain3_manifest.json`.
+The local summary is `experiments/train_only_drain3/summary.json`, and the split
+audit is `reports/model_evaluation/train_only_drain3_split_audit.json`. The file
+`reports/model_evaluation/train_only_drain3_manifest.json` is the earlier
+manifest record. The current schema v2 reproducibility manifest is
+`reports/model_evaluation/train_only_drain3_manifest_v2.json`.
+
+Schema v2 records the dataset SHA-256 and file size, plus SHA-256 and byte size
+for the 25 experiment artifacts across the five seeds. These hashes identify
+the files as read when the manifest was created; they do not prove the files had
+the same identity when the historical experiment ran.
+
+Configuration provenance is separate: the completed historical run used
+Drain3 0.9.11 `TemplateMinerConfig` defaults with no INI loaded, while
+`configs/drain3_train_only.ini` records configuration for future runs. The INI
+must not be described as the configuration consumed by the historical run.
 
 Large serialized model files and prediction CSVs should remain outside normal source control unless there is a specific artifact-management requirement. The compact report and reproducibility metadata are suitable for version control.
