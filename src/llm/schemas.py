@@ -55,14 +55,18 @@ def parse_explanation(raw: str, supplied_log_lines: list[str]) -> dict[str, Any]
             )
 
     # Evidence must be copied verbatim from the supplied records. This prevents
-    # invented log lines from being presented as source evidence.
+    # invented or paraphrased log lines from being presented as source evidence.
     allowed_lines = set(supplied_log_lines)
     invalid_evidence = [
         item for item in payload["evidence"] if item not in allowed_lines
     ]
     if invalid_evidence:
+        # Include a bounded diagnostic excerpt so evaluation reports reveal
+        # whether the model paraphrased, decorated, or invented a log record.
+        diagnostic = [item[:240] for item in invalid_evidence[:3]]
         raise ExplanationValidationError(
-            "LLM, kendisine verilmeyen veya birebir eşleşmeyen log kanıtı üretti."
+            "LLM, kendisine verilmeyen veya birebir eşleşmeyen log kanıtı üretti. "
+            f"Eşleşmeyen kanıt örnekleri: {json.dumps(diagnostic, ensure_ascii=False)}"
         )
 
     allowed_confidence = {"düşük", "orta", "yüksek"}
