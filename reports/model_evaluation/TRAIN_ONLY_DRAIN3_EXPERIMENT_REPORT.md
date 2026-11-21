@@ -143,11 +143,13 @@ The local environment manifest recorded the following versions:
 | joblib | 1.6.0 |
 | SciPy | 1.18.1 |
 
-Recorded repository state at manifest creation:
+The earlier manifest record, `reports/model_evaluation/train_only_drain3_manifest.json`, captured this repository state when that manifest was created:
 
 - Repository: `yagmurdamlakara/LogPilot-AI`
 - Branch: `main`
 - Commit: `f06baaf48060acf255ac9f011dcb0ea46acf3c9e`
+
+This commit belongs to the earlier manifest record and is retained as its creation-time Git snapshot. The current schema v2 reproducibility manifest, `reports/model_evaluation/train_only_drain3_manifest_v2.json`, separately records commit `ece190ac7175bd22921a502d08231e609dc063b7`. Its commit and working-tree status describe the Git state captured when the schema v2 manifest was created. Both records are snapshots of their respective manifest creation times and may therefore differ.
 
 ### Drain3 configuration provenance
 
