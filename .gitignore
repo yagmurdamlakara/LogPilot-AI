@@ -31,8 +31,9 @@ htmlcov/
 *.log
 *.tmp
 
-# Generated experiment outputs (keep code and compact summaries tracked)
+# Generated experiment outputs and deployment bundles (keep code and compact summaries tracked)
 experiments/train_only_drain3/
+model_artifacts/
 
 # Generated data (keep placeholders only)
 data/raw/*
