@@ -16,14 +16,14 @@ LOG_LINES = [
 ]
 
 
-def valid_payload(evidence=None):
+def valid_payload(evidence=None, confidence="düşük"):
     return {
         "summary": "Loglarda blok geçersiz kümesine eklenmiş görünüyor.",
         "evidence": evidence if evidence is not None else [2],
         "possible_causes": ["Blok geçersizleştirme işlemi; nedeni mevcut satırlardan kesinleştirilemez."],
         "recommendations": ["İlgili block için önceki ve sonraki log kayıtlarını incele."],
         "limitations": ["Verilen iki satır tek başına kök nedeni göstermiyor."],
-        "confidence": "düşük",
+        "confidence": confidence,
     }
 
 
@@ -133,8 +133,33 @@ def test_parse_explanation_rejects_invalid_json():
 
 
 def test_parse_explanation_rejects_invalid_confidence():
-    payload = valid_payload()
-    payload["confidence"] = "kesin"
+    payload = valid_payload(confidence="kesin")
 
     with pytest.raises(ExplanationValidationError, match="confidence"):
         parse_explanation(json.dumps(payload, ensure_ascii=False), LOG_LINES)
+
+
+@pytest.mark.parametrize(
+    ("indexes", "model_confidence", "expected"),
+    [
+        ([1], "yüksek", "düşük"),
+        ([1, 2], "yüksek", "düşük"),
+        ([1, 2, 3], "yüksek", "orta"),
+        ([1, 2, 3], "orta", "orta"),
+        ([1, 2, 3, 4], "yüksek", "yüksek"),
+    ],
+)
+def test_confidence_is_capped_by_number_of_selected_evidence_lines(
+    indexes, model_confidence, expected
+):
+    source_lines = [f"synthetic source line {index}" for index in range(1, 5)]
+    payload = valid_payload(evidence=indexes, confidence=model_confidence)
+
+    result = parse_explanation(
+        json.dumps(payload, ensure_ascii=False),
+        source_lines,
+    )
+
+    assert result["model_confidence"] == model_confidence
+    assert result["confidence"] == expected
+    assert result["evidence"] == [source_lines[index - 1] for index in indexes]
