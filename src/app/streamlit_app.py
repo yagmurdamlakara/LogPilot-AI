@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,10 +30,32 @@ def load_analyzer() -> HDFSLogAnalyzer:
     return HDFSLogAnalyzer()
 
 
-def decoded_lines(uploaded_file):
-    """Yield UTF-8 log lines from Streamlit's uploaded binary file."""
-    for raw_line in uploaded_file:
-        yield raw_line.decode("utf-8", errors="replace")
+def decoded_lines(log_path: Path):
+    """Yield UTF-8 log lines from a disk-backed upload in bounded memory."""
+    with log_path.open("rb") as source:
+        for raw_line in source:
+            yield raw_line.decode("utf-8", errors="replace")
+
+
+@contextmanager
+def staged_upload(uploaded_file, *, chunk_size: int = 8 * 1024 * 1024):
+    """Copy Streamlit's upload to a temporary disk file without making a second full-size copy."""
+    suffix = Path(uploaded_file.name).suffix or ".log"
+    temporary_path = None
+    uploaded_file.seek(0)
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as target:
+            temporary_path = Path(target.name)
+            while True:
+                chunk = uploaded_file.read(chunk_size)
+                if not chunk:
+                    break
+                target.write(chunk)
+        yield temporary_path
+    finally:
+        uploaded_file.seek(0)
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def inject_styles() -> None:
@@ -144,7 +167,7 @@ def main() -> None:
     uploaded_file = st.file_uploader(
         "HDFS log dosyası seçin",
         type=["log", "txt"],
-        help="UTF-8 metin dosyaları desteklenir. Büyük dosyaların işlenmesi zaman alabilir.",
+        help="UTF-8 metin dosyaları desteklenir. Sunucu yükleme sınırı 2 GB olarak yapılandırılmıştır. Büyük dosyalar diske parça parça aktarılır; yükleme sırasında Streamlit dosyayı bellekte tutabilir.",
     )
     if uploaded_file is None:
         st.info("Başlamak için bir .log veya .txt dosyası yükleyin.")
@@ -167,9 +190,9 @@ def main() -> None:
 
     if run_analysis:
         try:
-            uploaded_file.seek(0)
-            with st.spinner("Log satırları ayrıştırılıyor ve bloklar puanlanıyor..."):
-                predictions, stats = predictor.predict_lines(decoded_lines(uploaded_file))
+            with st.spinner("Dosya geçici diske aktarılıyor ve log satırları analiz ediliyor..."):
+                with staged_upload(uploaded_file) as log_path:
+                    predictions, stats = predictor.predict_lines(decoded_lines(log_path))
             st.session_state["logpilot_predictions"] = predictions
             st.session_state["logpilot_stats"] = stats
             st.session_state["logpilot_filename"] = uploaded_file.name
@@ -291,24 +314,17 @@ def main() -> None:
                 key="logpilot_selected_block",
             )
             if st.button("Seçili block'un log kanıtını getir", type="primary"):
-                temporary_path = None
                 try:
-                    uploaded_file.seek(0)
-                    with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as temp:
-                        temp.write(uploaded_file.getbuffer())
-                        temporary_path = Path(temp.name)
-                    evidence = predictor.extract_block_evidence(
-                        temporary_path, {selected_block}, max_lines_per_block=100
-                    )
+                    with staged_upload(uploaded_file) as log_path:
+                        evidence = predictor.extract_block_evidence(
+                            log_path, {selected_block}, max_lines_per_block=100
+                        )
                     st.session_state["logpilot_evidence"] = {
                         "block_id": selected_block,
                         "lines": evidence.get(selected_block, []),
                     }
                 except Exception as exc:
                     st.error(f"Ham log kanıtı çıkarılamadı: {exc}")
-                finally:
-                    if temporary_path is not None:
-                        temporary_path.unlink(missing_ok=True)
 
             evidence_state = st.session_state.get("logpilot_evidence")
             if evidence_state and evidence_state.get("block_id") == selected_block:
@@ -342,16 +358,12 @@ def main() -> None:
             info_col.metric("Sınıflandırıcı kararı", "Anomaly")
             score_col.metric("Anomali skoru", f"{float(selected_prediction['anomaly_score']):.4f}")
             if st.button("Seçili blok için açıklama üret", type="primary", key="logpilot_explain_button"):
-                temporary_path = None
                 try:
-                    uploaded_file.seek(0)
-                    with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as temp:
-                        temp.write(uploaded_file.getbuffer())
-                        temporary_path = Path(temp.name)
                     with st.spinner("Seçilen bloğun kanıtları çıkarılıyor ve yerel LLM açıklama üretiyor..."):
-                        evidence = predictor.extract_block_evidence(
-                            temporary_path, {explanation_block}, max_lines_per_block=100
-                        )
+                        with staged_upload(uploaded_file) as log_path:
+                            evidence = predictor.extract_block_evidence(
+                                log_path, {explanation_block}, max_lines_per_block=100
+                            )
                         block_lines = evidence.get(explanation_block, [])
                         if not block_lines:
                             st.warning("Seçilen blok için ham log kanıtı bulunamadı; LLM çağrısı yapılmadı.")
@@ -373,9 +385,6 @@ def main() -> None:
                     st.error(f"Yerel LLM bağlantı/yanıt hatası: {exc}")
                 except Exception as exc:
                     st.error(f"LLM açıklaması oluşturulamadı: {exc}")
-                finally:
-                    if temporary_path is not None:
-                        temporary_path.unlink(missing_ok=True)
 
             explanation_state = st.session_state.get("logpilot_explanation")
             if (
