@@ -75,6 +75,10 @@ def evaluate_scenario(
             and explanation["block_id"] == scenario["block_id"]
         )
         confidence_in_range = confidence in expected_confidence
+        classifier_label = explanation.get(
+            "classifier_label",
+            "Anomaly" if scenario["prediction"] == 1 else "Normal",
+        )
 
         result.update({
             "status": "completed",
@@ -88,7 +92,7 @@ def evaluate_scenario(
             "recommendations": explanation["recommendations"],
             "limitations": explanation["limitations"],
             "classifier_prediction": explanation["classifier_prediction"],
-            "classifier_label": explanation["classifier_label"],
+            "classifier_label": classifier_label,
             "classifier_anomaly_score": explanation["classifier_anomaly_score"],
         })
     except Exception as exc:  # Preserve a failed scenario and continue the batch.
