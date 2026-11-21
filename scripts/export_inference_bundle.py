@@ -131,6 +131,7 @@ def main() -> int:
 
     shutil.copy2(args.experiment_dir / "baseline_models.joblib", args.output_dir / "baseline_models.joblib")
     shutil.copy2(args.experiment_dir / "drain3_templates.json", args.output_dir / "drain3_templates.json")
+    shutil.copy2(args.drain3_config, args.output_dir / "drain3_train_only.ini")
     metadata = {
         "bundle_name": "logpilot_hdfs_train_only_seed_11",
         "seed": args.seed,
@@ -142,7 +143,7 @@ def main() -> int:
         "unmatched_event": UNMATCHED_EVENT,
         "parser_fit_scope": "training block IDs only",
         "inference_method": "TemplateMiner.match; no cluster updates",
-        "drain3_config_path": str(args.drain3_config),
+        "drain3_config_path": "drain3_train_only.ini",
         "drain3_config_sha256": sha256(args.drain3_config),
         "drain3_state_sha256": sha256(state_path),
         "classifier_sha256": sha256(args.output_dir / "baseline_models.joblib"),
