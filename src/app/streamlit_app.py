@@ -70,10 +70,21 @@ def render_score_chart(predictions: pd.DataFrame) -> None:
     if predictions.empty:
         st.info("Grafik oluşturmak için tahmin sonucu bulunmuyor.")
         return
-    bins = pd.cut(predictions["anomaly_score"], bins=10, include_lowest=True)
-    distribution = bins.value_counts(sort=False)
-    chart_data = distribution.rename_axis("Skor aralığı").to_frame("Blok sayısı")
-    chart_data.index = chart_data.index.astype(str)
+
+    scores = pd.to_numeric(predictions["anomaly_score"], errors="coerce").dropna()
+    unique_scores = scores.nunique()
+    if unique_scores <= 12:
+        # Preserve exact score values for small/discrete distributions. This avoids
+        # misleading auto-expanded histogram edges when every score is identical.
+        distribution = scores.round(4).value_counts().sort_index()
+        chart_data = distribution.rename_axis("Anomali skoru").to_frame("Blok sayısı")
+        chart_data.index = chart_data.index.map(lambda value: f"{value:.4f}")
+    else:
+        bins = pd.cut(scores, bins=10, include_lowest=True)
+        distribution = bins.value_counts(sort=False)
+        chart_data = distribution.rename_axis("Skor aralığı").to_frame("Blok sayısı")
+        chart_data.index = chart_data.index.astype(str)
+
     st.bar_chart(chart_data, y="Blok sayısı", use_container_width=True)
 
 
@@ -190,6 +201,18 @@ def main() -> None:
         with chart_col:
             st.markdown("#### Anomali skor dağılımı")
             render_score_chart(predictions)
+            if not predictions.empty and predictions["anomaly_score"].nunique() == 1:
+                only_score = float(predictions["anomaly_score"].iloc[0])
+                st.warning(
+                    f"Bu dosyadaki tüm block'lar aynı anomali skorunu ({only_score:.4f}) "
+                    "aldı. Bu veri seti için skorlar arasında ayrım yapılamıyor; "
+                    "bu sonucu tek başına model performansı olarak yorumlamayın."
+                )
+            elif predictions["prediction"].nunique() == 1:
+                st.warning(
+                    "Bu dosyada model yalnızca tek bir sınıf tahmin etti. "
+                    "Sonucu veri setinin özelliklerini dikkate alarak yorumlayın."
+                )
         with context_col:
             st.markdown("#### Sınıf dağılımı")
             counts = predictions["prediction_label"].value_counts()
