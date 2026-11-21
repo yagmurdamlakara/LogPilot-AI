@@ -93,3 +93,23 @@ unique event clusters, and the total feature count. It prints progress every
 The Loghub-provided `Event_occurrence_matrix.csv` is a reference artifact,
 not the output of our Drain3 parser. Its E1-E29 identifiers must not be assumed
 to match Drain3 cluster IDs. Use it for a separate reference comparison.
+
+## Run the Streamlit application
+
+After exporting the local Seed 11 inference bundle:
+
+```powershell
+python -m scripts.export_inference_bundle
+streamlit run src/app/streamlit_app.py
+```
+
+Open the local Streamlit URL shown in the terminal, upload an HDFS `.log` or
+`.txt` file, and select **Logları analiz et**. The interface displays block-level
+anomaly scores, lets you download the anomaly list as CSV, and shows up to 100
+raw log lines for a selected anomalous block.
+
+The model bundle under `model_artifacts/seed_11/` is generated locally and is
+not committed to Git. The app uses the frozen train-only Drain3 parser and the
+Seed 11 Logistic Regression classifier. LLM-based root-cause explanations are
+not part of this first UI increment; detected anomalies are not, by themselves,
+proof of a root cause.
