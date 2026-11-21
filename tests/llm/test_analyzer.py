@@ -19,7 +19,7 @@ LOG_LINES = [
 def valid_payload(evidence=None):
     return {
         "summary": "Loglarda blok geçersiz kümesine eklenmiş görünüyor.",
-        "evidence": evidence if evidence is not None else [LOG_LINES[1]],
+        "evidence": evidence if evidence is not None else [2],
         "possible_causes": ["Blok geçersizleştirme işlemi; nedeni mevcut satırlardan kesinleştirilemez."],
         "recommendations": ["İlgili block için önceki ve sonraki log kayıtlarını incele."],
         "limitations": ["Verilen iki satır tek başına kök nedeni göstermiyor."],
@@ -72,13 +72,13 @@ def test_analyzer_preserves_normal_prediction():
     assert result["classifier_anomaly_score"] == pytest.approx(0.12)
 
 
-def test_analyzer_rejects_evidence_not_present_in_input():
-    payload = valid_payload(evidence=["Bu satır verilen loglarda yok."])
+def test_analyzer_rejects_out_of_range_evidence_index():
+    payload = valid_payload(evidence=[3])
     analyzer = HDFSLogAnalyzer(
         client=FakeLLMClient(json.dumps(payload, ensure_ascii=False))
     )
 
-    with pytest.raises(ExplanationValidationError, match="kanıtı"):
+    with pytest.raises(ExplanationValidationError, match="aralığı dışında"):
         analyzer.explain_block(
             block_id="blk_test",
             prediction=1,
