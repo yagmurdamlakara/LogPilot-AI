@@ -12,6 +12,7 @@ from drain3.template_miner import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
 
 from src.inference.feature_builder import FrozenBlockFeatureBuilder
+from src.preprocessing.log_parser import HDFSLogParser
 
 
 class LogPilotPredictor:
@@ -78,9 +79,7 @@ class LogPilotPredictor:
         with Path(log_path).open("r", encoding="utf-8", errors="replace") as source:
             for raw_line in source:
                 message = raw_line.strip()
-                block_id = __import__(
-                    "src.preprocessing.log_parser", fromlist=["HDFSLogParser"]
-                ).HDFSLogParser.extract_block_id(message)
+                block_id = HDFSLogParser.extract_block_id(message)
                 if block_id not in remaining:
                     continue
                 evidence[block_id].append(message)
