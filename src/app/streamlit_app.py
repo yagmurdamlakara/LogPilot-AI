@@ -1,16 +1,21 @@
 """Streamlit interface for HDFS block-level anomaly detection."""
 from __future__ import annotations
 
-import io
+import sys
 import tempfile
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+# Streamlit may put src/app, rather than the repository root, on sys.path.
+# Add the repository root so imports such as src.inference resolve reliably.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import pandas as pd
 import streamlit as st
 
 from src.inference.predictor import LogPilotPredictor
 
-ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ARTIFACTS = ROOT / "model_artifacts" / "seed_11"
 
 
