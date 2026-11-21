@@ -123,10 +123,18 @@ def main() -> int:
                 print(f"Scanned {scanned:,}; training lines used {used:,}; clusters {len(miner.drain.clusters)}", flush=True)
 
     miner.save_state("deployment bundle export")
-    if len(miner.drain.clusters) != len(templates):
+    rebuilt_templates = {
+        str(cluster.cluster_id): cluster.get_template()
+        for cluster in miner.drain.clusters
+    }
+    saved_templates = {
+        str(item["event_id"]): str(item["template"])
+        for item in templates
+    }
+    if rebuilt_templates != saved_templates:
         raise RuntimeError(
-            f"Rebuilt parser has {len(miner.drain.clusters)} clusters; "
-            f"historical template file has {len(templates)}. Do not deploy."
+            "Rebuilt Drain3 cluster IDs/templates do not exactly match the "
+            "historical experiment metadata. Do not deploy this bundle."
         )
 
     shutil.copy2(args.experiment_dir / "baseline_models.joblib", args.output_dir / "baseline_models.joblib")
