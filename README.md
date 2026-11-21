@@ -106,7 +106,14 @@ streamlit run src/app/streamlit_app.py
 Open the local Streamlit URL shown in the terminal, upload an HDFS `.log` or
 `.txt` file, and select **Logları analiz et**. The interface displays block-level
 anomaly scores, lets you download the anomaly list as CSV, and shows up to 100
-raw log lines for a selected anomalous block.
+raw log lines for a selected anomalous block. The **LLM açıklama** tab can generate
+a structured explanation for one selected anomalous block using the local Ollama
+service (default model: `qwen3:4b`). It displays possible causes, selected source
+log lines, recommended checks, limitations, and a conservative confidence level.
+Only that block's bounded raw evidence is sent to the LLM; the classifier prediction
+and anomaly score remain unchanged. Start Ollama separately before requesting an
+explanation. If Ollama is unavailable, anomaly detection and the rest of the
+dashboard remain usable.
 
 The model bundle under `model_artifacts/seed_11/` is generated locally and is
 not committed to Git. The app uses the frozen train-only Drain3 parser and the
