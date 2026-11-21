@@ -13,6 +13,8 @@ import pandas as pd
 import streamlit as st
 
 from src.inference.predictor import LogPilotPredictor
+from src.llm.analyzer import HDFSLogAnalyzer
+from src.llm.client import OllamaError
 
 DEFAULT_ARTIFACTS = ROOT / "model_artifacts" / "seed_11"
 
@@ -20,6 +22,11 @@ DEFAULT_ARTIFACTS = ROOT / "model_artifacts" / "seed_11"
 @st.cache_resource(show_spinner="LogPilot modeli yükleniyor...")
 def load_predictor(artifact_dir: str) -> LogPilotPredictor:
     return LogPilotPredictor(artifact_dir)
+
+
+@st.cache_resource(show_spinner="Yerel LLM analizcisi hazırlanıyor...")
+def load_analyzer() -> HDFSLogAnalyzer:
+    return HDFSLogAnalyzer()
 
 
 def decoded_lines(uploaded_file):
@@ -192,8 +199,8 @@ def main() -> None:
         f"Karar eşiği: {predictor.threshold:.6f}"
     )
 
-    overview_tab, anomalies_tab, evidence_tab = st.tabs(
-        ["Genel görünüm", "Anomali inceleme", "Ham log kanıtı"]
+    overview_tab, anomalies_tab, evidence_tab, explanation_tab = st.tabs(
+        ["Genel görünüm", "Anomali inceleme", "Ham log kanıtı", "LLM açıklama"]
     )
 
     with overview_tab:
@@ -312,6 +319,100 @@ def main() -> None:
                     st.warning("Seçilen block için ham log satırı bulunamadı.")
             else:
                 st.caption("Kanıtı görüntülemek için bir block seçip butona basın.")
+
+    with explanation_tab:
+        st.markdown("#### Seçilen anomali için LLM destekli açıklama")
+        st.caption(
+            "LLM yalnızca seçilen anormal bloğun ham log kayıtlarını inceler. "
+            "Sınıflandırıcının tahminini veya anomali skorunu değiştirmez."
+        )
+        if anomalies.empty:
+            st.info("Açıklama üretmek için önce en az bir anormal blok tespit edilmelidir.")
+        else:
+            explanation_block = st.selectbox(
+                "Açıklanacak anormal blok",
+                options=anomalies["block_id"].astype(str).tolist(),
+                key="logpilot_explanation_block",
+            )
+            selected_prediction = anomalies.loc[
+                anomalies["block_id"].astype(str) == explanation_block
+            ].iloc[0]
+            info_col, score_col = st.columns(2)
+            info_col.metric("Sınıflandırıcı kararı", "Anomaly")
+            score_col.metric("Anomali skoru", f"{float(selected_prediction['anomaly_score']):.4f}")
+            if st.button("Seçili blok için açıklama üret", type="primary", key="logpilot_explain_button"):
+                temporary_path = None
+                try:
+                    uploaded_file.seek(0)
+                    with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as temp:
+                        temp.write(uploaded_file.getbuffer())
+                        temporary_path = Path(temp.name)
+                    with st.spinner("Seçilen bloğun kanıtları çıkarılıyor ve yerel LLM açıklama üretiyor..."):
+                        evidence = predictor.extract_block_evidence(
+                            temporary_path, {explanation_block}, max_lines_per_block=100
+                        )
+                        block_lines = evidence.get(explanation_block, [])
+                        if not block_lines:
+                            st.warning("Seçilen blok için ham log kanıtı bulunamadı; LLM çağrısı yapılmadı.")
+                            st.session_state.pop("logpilot_explanation", None)
+                        else:
+                            analyzer = load_analyzer()
+                            explanation = analyzer.explain_block(
+                                block_id=explanation_block,
+                                prediction=int(selected_prediction["prediction"]),
+                                anomaly_score=float(selected_prediction["anomaly_score"]),
+                                log_lines=block_lines,
+                            )
+                            st.session_state["logpilot_explanation"] = {
+                                "filename": uploaded_file.name,
+                                "block_id": explanation_block,
+                                "result": explanation,
+                            }
+                except OllamaError as exc:
+                    st.error(f"Yerel LLM bağlantı/yanıt hatası: {exc}")
+                except Exception as exc:
+                    st.error(f"LLM açıklaması oluşturulamadı: {exc}")
+                finally:
+                    if temporary_path is not None:
+                        temporary_path.unlink(missing_ok=True)
+
+            explanation_state = st.session_state.get("logpilot_explanation")
+            if (
+                explanation_state
+                and explanation_state.get("filename") == uploaded_file.name
+                and explanation_state.get("block_id") == explanation_block
+            ):
+                result = explanation_state["result"]
+                st.divider()
+                st.markdown("##### Açıklama özeti")
+                st.write(result["summary"])
+                st.markdown("##### Olası nedenler")
+                for item in result["possible_causes"]:
+                    st.markdown(f"- {item}")
+                st.markdown("##### Log kanıtları")
+                if result["evidence"]:
+                    for line in result["evidence"]:
+                        st.code(line, language="text")
+                else:
+                    st.info("LLM belirli bir kanıt satırı seçmedi.")
+                st.markdown("##### Önerilen inceleme adımları")
+                for item in result["recommendations"]:
+                    st.markdown(f"- {item}")
+                if result["limitations"]:
+                    st.markdown("##### Sınırlılıklar")
+                    for item in result["limitations"]:
+                        st.markdown(f"- {item}")
+                confidence_labels = {"düşük": "Düşük", "orta": "Orta", "yüksek": "Yüksek"}
+                st.metric("Kanıta göre sınırlandırılmış güven seviyesi", confidence_labels[result["confidence"]])
+                if result["model_confidence"] != result["confidence"]:
+                    st.caption(
+                        f"Modelin ham güven beyanı: {confidence_labels[result['model_confidence']]}. "
+                        "Gösterilen seviye, seçilen kanıt sayısına göre daha ihtiyatlı hale getirildi."
+                    )
+                st.warning(
+                    "Bu açıklama olası nedenleri ve inceleme adımlarını sunar; "
+                    "HDFS normal/anormal etiketi gerçek kök nedeni kanıtlamaz."
+                )
 
     st.divider()
     st.markdown(
