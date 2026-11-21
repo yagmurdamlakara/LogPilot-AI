@@ -115,6 +115,16 @@ and anomaly score remain unchanged. Start Ollama separately before requesting an
 explanation. If Ollama is unavailable, anomaly detection and the rest of the
 dashboard remain usable.
 
+Large uploads are enabled through `.streamlit/config.toml` (2 GiB limit). After
+Streamlit receives a file, the app stages it to a temporary disk file in 8 MiB
+chunks and reads log lines from disk. This avoids creating another full-size
+in-memory copy and removes the temporary file after each operation. Streamlit's
+upload widget itself still buffers the uploaded file in server memory, so this
+is not a fully streaming browser-to-disk upload. Ensure the machine has
+sufficient RAM and free space on its temporary drive (at least the upload size;
+additional room is recommended) before analyzing a 1.5 GB log. The app processes
+the staged file line by line and extracts bounded evidence only for a selected block.
+
 The model bundle under `model_artifacts/seed_11/` is generated locally and is
 not committed to Git. The app uses the frozen train-only Drain3 parser and the
 Seed 11 Logistic Regression classifier. LLM explanations are an optional
