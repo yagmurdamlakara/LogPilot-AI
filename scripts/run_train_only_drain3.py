@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 from drain3.template_miner import TemplateMiner
+from drain3.template_miner_config import TemplateMinerConfig
 from sklearn.model_selection import train_test_split
 
 from src.models.baseline import train_baselines
@@ -30,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA = ROOT / "data" / "processed" / "hdfs_full_labeled.csv"
 DEFAULT_LOG = ROOT / "data" / "raw" / "HDFS" / "HDFS.log"
 DEFAULT_OUTPUT = ROOT / "experiments" / "train_only_drain3"
+DEFAULT_DRAIN3_CONFIG = ROOT / "configs" / "drain3_train_only.ini"
 UNMATCHED_EVENT = "__UNMATCHED__"
 
 
@@ -214,11 +216,14 @@ def run_seed(
     seed: int,
     test_size: float,
     validation_size: float,
+    drain3_config_path: Path,
 ) -> dict[str, object]:
     train_ids, validation_ids, test_ids = split_block_ids(
         frame, seed, test_size, validation_size
     )
-    miner = TemplateMiner()
+    drain3_config = TemplateMinerConfig()
+    drain3_config.load(str(drain3_config_path))
+    miner = TemplateMiner(config=drain3_config)
     parser_stats = train_parser_on_training_blocks(raw_log, train_ids, miner)
 
     seed_dir = output_root / f"seed_{seed}"
@@ -278,6 +283,7 @@ def main() -> int:
     parser.add_argument("--data", type=Path, default=DEFAULT_DATA)
     parser.add_argument("--raw-log", type=Path, default=DEFAULT_LOG)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--drain3-config", type=Path, default=DEFAULT_DRAIN3_CONFIG)
     parser.add_argument("--seeds", nargs="+", type=int, default=[11, 22, 33, 44, 55])
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--validation-size", type=float, default=0.2)
@@ -287,6 +293,8 @@ def main() -> int:
         raise FileNotFoundError(f"Labelled dataset not found: {args.data}")
     if not args.raw_log.is_file():
         raise FileNotFoundError(f"Raw HDFS log not found: {args.raw_log}")
+    if not args.drain3_config.is_file():
+        raise FileNotFoundError(f"Drain3 config not found: {args.drain3_config}")
     if args.test_size <= 0 or args.validation_size <= 0 or args.test_size + args.validation_size >= 1:
         parser.error("Split fractions must be positive and sum to less than 1.")
 
@@ -326,7 +334,7 @@ def main() -> int:
         else:
             result = run_seed(
                 frame, args.raw_log, args.output_dir, seed,
-                args.test_size, args.validation_size,
+                args.test_size, args.validation_size, args.drain3_config,
             )
         all_results.append(result)
         print(
@@ -337,6 +345,7 @@ def main() -> int:
 
     summary = {
         "experiment": "train_only_drain3_frozen_inference",
+        "drain3_config": str(args.drain3_config),
         "seeds": all_results,
         "note": (
             "Drain3 is fitted only on log lines whose block IDs belong to the "
